@@ -23,18 +23,23 @@ export function getFileIcon(fileType) {
 }
 
 export function isEditable(file) {
-  if (!file?.file_type) return false;
-  return file.file_type === 'text/plain' ||
-         file.file_type === 'text/markdown' ||
-         file.file_type === 'text/x-markdown' ||
-         file.file_type === 'application/octet-stream' && (
-           file.file_name.endsWith('.md') ||
-           file.file_name.endsWith('.txt')
-         );
+  if (!file) return false;
+  // 优先通过文件名后缀判断
+  const name = file.file_name?.toLowerCase() || '';
+  if (name.endsWith('.md')) return true;
+  if (name.endsWith('.txt')) return true;
+  // 其次通过 MIME 类型判断
+  const type = file.file_type || '';
+  return type === 'text/plain' || type === 'text/markdown' || type === 'text/x-markdown';
 }
 
 export function isPdf(file) {
-  return file?.file_type?.includes('pdf');
+  if (!file) return false;
+  // 优先通过文件名后缀判断
+  const name = file.file_name?.toLowerCase() || '';
+  if (name.endsWith('.pdf')) return true;
+  // 其次通过 MIME 类型判断
+  return file.file_type?.includes('pdf');
 }
 
 export function getTypeLabel(file) {
