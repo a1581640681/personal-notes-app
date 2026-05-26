@@ -19,8 +19,9 @@ export default function NoteUpload({ onUploadComplete }) {
   const uploadOne = async (file, index) => {
     const userId = user.id;
     const ts = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9._\-\u4e00-\u9fff]/g, '_');
-    const storagePath = `${userId}/${ts}_${safeName}`;
+    // 存储路径仅保留时间戳+扩展名，避免中文和特殊字符问题
+    const ext = file.name.split('.').pop();
+    const storagePath = `${userId}/${ts}.${ext}`;
 
     setQueue(p => p.map((item, i) => i === index ? { ...item, status: 'uploading' } : item));
 
@@ -30,7 +31,7 @@ export default function NoteUpload({ onUploadComplete }) {
 
     const { error: dbErr } = await supabase.from('user_notes').insert({
       user_id: userId,
-      file_name: safeName,
+      file_name: file.name, // 保留原始文件名
       file_size: file.size,
       file_type: file.type || 'application/octet-stream',
       storage_path: storagePath,
