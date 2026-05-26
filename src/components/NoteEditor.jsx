@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { formatFileSize, formatDate, isEditable, isPdf, getTypeLabel } from '../utils/formatUtils';
 import Markdown from 'react-markdown';
@@ -17,6 +17,8 @@ export default function NoteEditor({ file, onClose, onSaved }) {
 
   const editable = isEditable(file);
   const pdf = isPdf(file);
+  const onSavedRef = useRef(onSaved);
+  onSavedRef.current = onSaved;
 
   // 获取文件内容并标记已打开
   const fetchContent = useCallback(async () => {
@@ -26,7 +28,7 @@ export default function NoteEditor({ file, onClose, onSaved }) {
     try {
       const { data: urlData, error: urlErr } = await supabase.storage
         .from('user_notes')
-        .createSignedUrl(file.storage_path, 300); // 5分钟有效期
+        .createSignedUrl(file.storage_path, 300);
       if (urlErr) throw urlErr;
       setSignedUrl(urlData.signedUrl);
 
@@ -46,14 +48,15 @@ export default function NoteEditor({ file, onClose, onSaved }) {
         .eq('id', file.id);
       if (!updateErr) {
         setLastOpened(now);
-        if (onSaved) onSaved(); // 刷新列表
+        // 通过 ref 调用 onSaved，避免依赖循环
+        if (onSavedRef.current) onSavedRef.current();
       }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [file, editable, onSaved]);
+  }, [file, editable]);
 
   useEffect(() => {
     fetchContent();
