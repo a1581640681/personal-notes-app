@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
+import NoteView from './components/NoteView';
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Auth />} />
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/note/:id" element={<PrivateRoute><NoteView /></PrivateRoute>} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={
             <div className="min-h-screen flex items-center justify-center bg-gray-50">

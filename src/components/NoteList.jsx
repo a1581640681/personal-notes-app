@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
-import { formatFileSize, formatDate, getFileIcon, isEditable, isPdf, getTypeLabel } from '../utils/formatUtils';
-import NoteEditor from './NoteEditor';
+import { formatFileSize, formatDate, getFileIcon, isEditable, getTypeLabel } from '../utils/formatUtils';
 
 export default function NoteList({ refreshTrigger }) {
   const { user } = useAuth();
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeNote, setActiveNote] = useState(null);
+  const navigate = useNavigate();
   const [deleting, setDeleting] = useState({});
   const [search, setSearch] = useState('');
 
@@ -37,7 +37,6 @@ export default function NoteList({ refreshTrigger }) {
       const { error: e2 } = await supabase.from('user_notes').delete().eq('id', note.id);
       if (e2) throw e2;
       setNotes(p => p.filter(n => n.id !== note.id));
-      if (activeNote?.id === note.id) setActiveNote(null);
     } catch (err) { alert('删除失败: ' + err.message); }
     finally { setDeleting(p => ({ ...p, [note.id]: false })); }
   };
@@ -81,8 +80,8 @@ export default function NoteList({ refreshTrigger }) {
         <div className="space-y-2">
           {filtered.map(note => (
             <div key={note.id}
-              onClick={() => setActiveNote(note)}
-              className={`bg-white border rounded-xl p-4 cursor-pointer transition hover:shadow-md group ${activeNote?.id === note.id ? 'border-amber-400 shadow-md ring-1 ring-amber-200' : 'border-gray-200 hover:border-amber-300'}`}>
+              onClick={() => navigate(`/note/${note.id}`, { state: { file: note } })}
+              className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer transition hover:shadow-md hover:border-amber-300 group">
               <div className="flex items-start gap-3">
                 {/* 图标 */}
                 <div className="text-2xl flex-shrink-0 mt-0.5">{getFileIcon(note.file_type)}</div>
@@ -119,10 +118,6 @@ export default function NoteList({ refreshTrigger }) {
             </div>
           ))}
         </div>
-      )}
-
-      {activeNote && (
-        <NoteEditor file={activeNote} onClose={() => setActiveNote(null)} onSaved={fetchNotes} />
       )}
     </div>
   );
