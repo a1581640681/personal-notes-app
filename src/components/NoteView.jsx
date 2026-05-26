@@ -83,56 +83,71 @@ export default function NoteView() {
     </div>
   );
 
-  // === PDF 全屏模式 ===
+  // === PDF 模式 ===
   if (pdf) {
     return (
-      <div className="h-screen bg-gray-900 flex flex-col">
-        {/* 浮动工具栏 */}
-        <div className="flex-shrink-0 bg-gray-800/95 backdrop-blur border-b border-gray-700 px-4 py-2.5">
-          <div className="flex items-center gap-3">
+      <div className="min-h-screen bg-gray-900 flex flex-col">
+        {/* 顶部工具栏 */}
+        <div className="flex-shrink-0 bg-gray-800/95 backdrop-blur border-b border-gray-700 px-3 sm:px-4 py-2.5">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-1 text-gray-300 hover:text-amber-400 transition text-sm">
+              className="flex items-center gap-1 text-gray-300 hover:text-amber-400 transition text-xs sm:text-sm">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               返回
             </button>
-            <span className="text-gray-500">|</span>
-            <span className="text-lg">{'\u{1F4D5}'}</span>
-            <h1 className="text-sm text-gray-200 truncate">{file.file_name}</h1>
-            <span className="text-xs text-gray-400">{formatFileSize(file.file_size)}</span>
-            <div className="ml-auto flex items-center gap-2">
-              <button onClick={handleDownload}
-                className="px-3 py-1 text-sm text-gray-300 hover:text-green-400 hover:bg-gray-700 rounded-lg transition">
-                {'\u{2B07}\u{FE0F}'} 下载
-              </button>
-              <a href={signedUrl} target="_blank" rel="noopener noreferrer"
-                className="px-3 py-1 text-sm text-gray-300 hover:text-blue-400 hover:bg-gray-700 rounded-lg transition">
-                {'\u{1F517}'} 新窗口打开
-              </a>
-            </div>
+            <h1 className="text-xs sm:text-sm text-gray-200 truncate flex-1">{file.file_name}</h1>
+            <span className="text-xs text-gray-400 hidden sm:inline">{formatFileSize(file.file_size)}</span>
+            <button onClick={handleDownload}
+              className="px-2 sm:px-3 py-1 text-xs sm:text-sm text-gray-300 hover:text-green-400 hover:bg-gray-700 rounded-lg transition">
+              {'\u{2B07}\u{FE0F}'} 下载
+            </button>
+            <a href={signedUrl} target="_blank" rel="noopener noreferrer"
+              className="px-2 sm:px-3 py-1 text-xs sm:text-sm text-gray-300 hover:text-blue-400 hover:bg-gray-700 rounded-lg transition">
+              {'\u{1F517}'} 新窗
+            </a>
           </div>
         </div>
 
-        {/* PDF 内容 - 占据剩余全部空间 */}
-        <div className="flex-1 bg-gray-800">
-          {loading && (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="inline-block w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="mt-4 text-gray-400 text-sm">加载中...</p>
+        {/* 加载/错误状态 */}
+        {loading && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="inline-block w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="mt-4 text-gray-400 text-sm">加载中...</p>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-red-400">{'\u26A0\uFE0F'} 加载失败: {error}</p>
+          </div>
+        )}
+
+        {/* 桌面端：内嵌 PDF */}
+        {!loading && !error && signedUrl && (
+          <>
+            <div className="hidden md:block flex-1 bg-gray-800">
+              <object data={signedUrl} type="application/pdf" className="w-full h-full">
+                <iframe src={signedUrl} className="w-full h-full border-0" />
+              </object>
+            </div>
+
+            {/* 手机端：按钮打开（系统原生阅读器） */}
+            <div className="md:hidden flex-1 flex items-center justify-center p-6">
+              <div className="bg-gray-800 rounded-2xl p-8 text-center max-w-sm w-full">
+                <div className="text-6xl mb-4">{'\u{1F4D5}'}</div>
+                <p className="text-sm text-gray-300 mb-1">{file.file_name}</p>
+                <p className="text-xs text-gray-500 mb-6">{formatFileSize(file.file_size)}</p>
+                <a href={signedUrl} target="_blank" rel="noopener noreferrer"
+                  className="inline-block w-full py-3 bg-amber-500 hover:bg-amber-400 text-white font-medium rounded-xl text-sm transition">
+                  {'\u{1F4D6}'} 打开 PDF
+                </a>
+                <p className="text-xs text-gray-500 mt-3">点击后使用系统阅读器打开</p>
               </div>
             </div>
-          )}
-          {error && (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-red-400">{'\u26A0\uFE0F'} 加载失败: {error}</p>
-            </div>
-          )}
-          {!loading && !error && signedUrl && (
-            <object data={signedUrl} type="application/pdf" className="w-full h-full">
-              <iframe src={signedUrl} className="w-full h-full border-0" />
-            </object>
-          )}
-        </div>
+          </>
+        )}
       </div>
     );
   }
