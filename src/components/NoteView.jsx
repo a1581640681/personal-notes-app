@@ -33,10 +33,10 @@ export default function NoteView() {
         const { data, error: urlErr } = await supabase.storage
           .from('user_notes').createSignedUrl(file.storage_path, 300);
         if (urlErr) throw urlErr;
-        setSignedUrl(urlData.signedUrl);
+        setSignedUrl(data.signedUrl);
 
         if (editable) {
-          const resp = await fetch(urlData.signedUrl);
+          const resp = await fetch(data.signedUrl);
           const text = await resp.text();
           setContent(text);
           setOriginalContent(text);
