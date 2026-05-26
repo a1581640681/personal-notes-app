@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { formatFileSize, formatDate, isEditable, isPdf, getTypeLabel } from '../utils/formatUtils';
+import { formatFileSize, isEditable, isPdf, getTypeLabel } from '../utils/formatUtils';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -30,7 +30,7 @@ export default function NoteView() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const { data: urlData, error: urlErr } = await supabase.storage
+        const { data, error: urlErr } = await supabase.storage
           .from('user_notes').createSignedUrl(file.storage_path, 300);
         if (urlErr) throw urlErr;
         setSignedUrl(urlData.signedUrl);
@@ -74,8 +74,70 @@ export default function NoteView() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
-  if (!file) return <div className="text-center py-20 text-gray-500">笔记数据丢失，<button onClick={() => navigate('/dashboard')} className="text-amber-600">返回列表</button></div>;
+  if (!file) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-gray-500 mb-3">笔记数据丢失</p>
+        <button onClick={() => navigate('/dashboard')} className="text-amber-600 hover:text-amber-800 text-sm">返回列表</button>
+      </div>
+    </div>
+  );
 
+  // === PDF 全屏模式 ===
+  if (pdf) {
+    return (
+      <div className="h-screen bg-gray-900 flex flex-col">
+        {/* 浮动工具栏 */}
+        <div className="flex-shrink-0 bg-gray-800/95 backdrop-blur border-b border-gray-700 px-4 py-2.5">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-1 text-gray-300 hover:text-amber-400 transition text-sm">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              返回
+            </button>
+            <span className="text-gray-500">|</span>
+            <span className="text-lg">{'\u{1F4D5}'}</span>
+            <h1 className="text-sm text-gray-200 truncate">{file.file_name}</h1>
+            <span className="text-xs text-gray-400">{formatFileSize(file.file_size)}</span>
+            <div className="ml-auto flex items-center gap-2">
+              <button onClick={handleDownload}
+                className="px-3 py-1 text-sm text-gray-300 hover:text-green-400 hover:bg-gray-700 rounded-lg transition">
+                {'\u{2B07}\u{FE0F}'} 下载
+              </button>
+              <a href={signedUrl} target="_blank" rel="noopener noreferrer"
+                className="px-3 py-1 text-sm text-gray-300 hover:text-blue-400 hover:bg-gray-700 rounded-lg transition">
+                {'\u{1F517}'} 新窗口打开
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* PDF 内容 - 占据剩余全部空间 */}
+        <div className="flex-1 bg-gray-800">
+          {loading && (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="inline-block w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="mt-4 text-gray-400 text-sm">加载中...</p>
+              </div>
+            </div>
+          )}
+          {error && (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-red-400">{'\u26A0\uFE0F'} 加载失败: {error}</p>
+            </div>
+          )}
+          {!loading && !error && signedUrl && (
+            <object data={signedUrl} type="application/pdf" className="w-full h-full">
+              <iframe src={signedUrl} className="w-full h-full border-0" />
+            </object>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // === MD/TXT 普通模式 ===
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 导航栏 */}
@@ -104,7 +166,7 @@ export default function NoteView() {
         </div>
       </nav>
 
-      {/* 内容区 */}
+      {/* MD/TXT 内容区 */}
       <div className="max-w-5xl mx-auto p-4 sm:p-8">
         {loading && (
           <div className="text-center py-20">
@@ -119,12 +181,6 @@ export default function NoteView() {
           </div>
         )}
 
-        {/* PDF 预览 */}
-        {!loading && !error && pdf && signedUrl && (
-          <iframe src={signedUrl} className="w-full h-[80vh] rounded-xl shadow bg-white" />
-        )}
-
-        {/* 可编辑 - 查看模式 */}
         {!loading && !error && editable && mode === 'view' && (
           <div className="bg-white rounded-xl p-4 sm:p-8 shadow-sm min-h-[60vh]">
             {file.file_name.toLowerCase().endsWith('.md') ? (
@@ -135,7 +191,6 @@ export default function NoteView() {
           </div>
         )}
 
-        {/* 可编辑 - 编辑模式 */}
         {!loading && !error && editable && mode === 'edit' && (
           <div className="flex flex-col gap-4">
             <textarea value={content} onChange={e => setContent(e.target.value)}
